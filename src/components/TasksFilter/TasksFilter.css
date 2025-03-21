@@ -1,0 +1,40 @@
+.filters {
+  right: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: inherit;
+}
+
+.filters li {
+  display: inline;
+  cursor: default;
+}
+
+.filters li button {
+  margin: 3px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 15px;
+  line-height: inherit;
+}
+
+.filters li button:not(.selected) {
+  cursor: pointer;
+}
+
+.filters li:hover button {
+  border-color: rgba(175, 47, 47, 0.1);
+}
+
+.filters li button.selected {
+  border-color: rgba(175, 47, 47, 0.2);
+}
+
+@media (max-width: 430px) {
+  .filters {
+    bottom: 10px;
+  }
+}
