@@ -1,5 +1,6 @@
 import './App.css'
 import { Component } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import TaskList from './components/TaskList/TaskList'
 import NewTaskForm from './components/NewTaskForm/NewTaskForm'
 import Footer from './components/Footer/Footer'
@@ -12,14 +13,24 @@ class App extends Component {
     this.state = {
       tasks: [],
       filter: 'all',
+      timers: {},
     }
   }
 
+  componentDidMount() {
+    this.startTimers()
+  }
+
+  componentWillUnmount() {
+    this.stopTimers()
+  }
+
   addTask = (task) => {
-    const newTask = { ...task, id: Date.now(), completed: false, created: Date.now() }
+    const newTask = { ...task, id: uuidv4(), completed: false, created: Date.now(), isActive: false }
     if (task.description.trim() !== '') {
       this.setState((prevState) => ({
         tasks: [...prevState.tasks, newTask],
+        timers: { ...prevState.timers, [newTask.id]: task.duration || 0 },
       }))
     }
   }
@@ -31,9 +42,17 @@ class App extends Component {
   }
 
   toggleTaskCompletion = (index) => {
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.map((task, i) => (i === index ? { ...task, completed: !task.completed } : task)),
-    }))
+    this.setState((prevState) => {
+      const task = prevState.tasks[index]
+      const newTimers = { ...prevState.timers }
+      if (!task.completed) {
+        newTimers[task.id] = 0
+      }
+      return {
+        tasks: prevState.tasks.map((t, i) => (i === index ? { ...t, completed: !t.completed, isActive: false } : t)),
+        timers: newTimers,
+      }
+    })
   }
 
   shiftFilter = (filter) => {
@@ -63,9 +82,38 @@ class App extends Component {
     }))
   }
 
+  updateTimer = (id, remainingTime, isActive) => {
+    this.setState((prevState) => {
+      const newTimers = { ...prevState.timers }
+      newTimers[id] = remainingTime
+      const updatedTasks = prevState.tasks.map((task) =>
+        task.id === id ? { ...task, isActive: !task.completed ? isActive : false } : task
+      )
+      return { timers: newTimers, tasks: updatedTasks }
+    })
+  }
+
+  startTimers = () => {
+    this.interval = setInterval(() => {
+      this.setState((prevState) => {
+        const newTimers = { ...prevState.timers }
+        Object.keys(newTimers).forEach((id) => {
+          const currentTask = prevState.tasks.find((task) => task.id === id)
+          if (newTimers[id] > 0 && currentTask && currentTask.isActive) {
+            newTimers[id] -= 1
+          }
+        })
+        return { timers: newTimers }
+      })
+    }, 1000)
+  }
+
+  stopTimers = () => {
+    clearInterval(this.interval)
+  }
+
   render() {
-    const { tasks } = this.state
-    const { filter } = this.state
+    const { tasks, filter, timers } = this.state
     return (
       <div className="todoapp">
         <Header>
@@ -76,6 +124,8 @@ class App extends Component {
           removeTask={this.removeTask}
           toggleTaskCompletion={this.toggleTaskCompletion}
           descriptionChange={this.descriptionChange}
+          timers={timers}
+          updateTimer={this.updateTimer}
         />
         <Footer
           taskItem={tasks.filter((task) => !task.completed).length}
