@@ -1,4 +1,3 @@
-@charset "UTF-8";
 .todo-list li {
   position: relative;
   border-bottom: 1px solid #ededed;
@@ -43,7 +42,7 @@
   width: 40px;
   height: auto;
   margin: auto 0;
-  border: none;
+  border: none; /* Mobile Safari */
   text-align: center;
   cursor: pointer;
   -webkit-appearance: none;
@@ -68,16 +67,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
   padding: 15px 85px 15px 60px;
 }
 
+.todo-list li .view {
+  position: relative;
+}
+
 .todo-list li label .created {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: gray;
   font-size: 13px;
 }
 
-.todo-list li label .description {
+.todo-list li label .title {
   display: block;
   color: #4d4d4d;
   font-weight: 400;
@@ -86,22 +91,23 @@
   transition: color 0.4s;
 }
 
-.todo-list li.completed label .description {
+.todo-list li.completed label .title {
   color: #cdcdcd;
   text-decoration: line-through;
 }
 
 .todo-list li .icon {
-  position: absolute;
-  top: 0;
-  bottom: -3px;
   width: 30px;
   height: 40px;
-  margin: auto 0 11px;
+  margin: auto 0;
   color: #cc9a9a;
   font-size: 34px;
   transition: color 0.2s ease-out;
   cursor: pointer;
+}
+
+.todo-list li .icon:disabled {
+  cursor: not-allowed;
 }
 
 .todo-list li .icon:hover {
@@ -109,27 +115,57 @@
 }
 
 .todo-list li .icon-destroy {
+  position: absolute;
+  top: 0;
   right: 10px;
+  bottom: -3px;
 }
 
 .todo-list li .icon-destroy:after {
   content: '×';
 }
 
-.todo-list li .icon-edit {
+.todo-list li .icon-edit,
+.todo-list li .icon-edit--not-allowed {
+  position: absolute;
+  top: 0;
   right: 45px;
+  bottom: -3px;
   font-size: 19px;
 }
 
 .todo-list li .icon-edit--not-allowed {
-  right: 45px;
-  font-size: 19px;
   cursor: not-allowed;
 }
 
 .todo-list li .icon-edit:after,
 .todo-list li .icon-edit--not-allowed:after {
   content: '✎';
+}
+
+.todo-list li .icon-pause,
+.todo-list li .icon-play {
+  width: 18px;
+  height: 100%;
+  vertical-align: bottom;
+  font-size: 18px;
+}
+
+.todo-list li .icon-play {
+  font-size: 16px;
+}
+
+.icon-pause:after,
+.icon-play:after {
+  line-height: 100%;
+}
+
+.icon-pause:after {
+  content: '❚❚';
+}
+
+.icon-play:after {
+  content: '▶';
 }
 
 .todo-list li .edit {

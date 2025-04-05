@@ -7,6 +7,12 @@ export default class Task extends Component {
     return formatDistanceToNow(date, { addSuffix: true, includeSeconds: true })
   }
 
+  static formatRemainingTime(seconds) {
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`
+  }
+
   constructor(props) {
     super(props)
     this.state = {
@@ -34,14 +40,29 @@ export default class Task extends Component {
     this.idEditing()
   }
 
+  swapTimer = () => {
+    const { updateTimer, task, remainingTime } = this.props
+    this.setState((prevState) => {
+      const newActiveState = !prevState.isActive
+      updateTimer(task.id, remainingTime, newActiveState)
+      return { isActive: newActiveState }
+    })
+  }
+
   render() {
-    const { task, removeTask, toggleTaskCompletion } = this.props
-    const { isEdit, newDescription } = this.state // Деструктурируем state
+    const { task, removeTask, toggleTaskCompletion, remainingTime, isActive } = this.props
+    const { isEdit, newDescription } = this.state
     let liClassName = ''
     if (task.completed) {
       liClassName += 'completed'
     } else if (isEdit) {
       liClassName += 'editing'
+    }
+    let icon = 'icon'
+    if (isActive) {
+      icon += ' icon-pause'
+    } else {
+      icon += ' icon-play'
     }
 
     const createdDate = new Date(task.created)
@@ -51,6 +72,10 @@ export default class Task extends Component {
           <input className="toggle" type="checkbox" checked={task.completed} onChange={toggleTaskCompletion} />
           <label htmlFor={`edit-${task.id}`}>
             <span className="description">{task.description}</span>
+            <span className="created created__timer">
+              <button type="button" className={icon} onClick={this.swapTimer} />
+              {Task.formatRemainingTime(remainingTime)}
+            </span>
             <span className="created">{Task.formatDate(createdDate)}</span>
           </label>
           <button className="icon icon-edit" type="button" onClick={this.idEditing} />
