@@ -15,9 +15,95 @@ export default class Task extends Component {
 
   constructor(props) {
     super(props)
+    const { task } = props
     this.state = {
       isEdit: false,
-      newDescription: props.task.description,
+      newDescription: task.description,
+      displayTime: task.remainingTime,
+      isRunning: !!task.timerStartTime,
+    }
+    this.intervalId = null
+  }
+
+  componentDidMount() {
+    const { isRunning } = this.state
+    if (isRunning) {
+      this.startTimer()
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    const { task: prevTask } = prevProps
+    const { task } = this.props
+
+    if (prevTask.remainingTime !== task.remainingTime) {
+      this.setState({ displayTime: task.remainingTime })
+    }
+
+    if (prevTask.timerStartTime && !task.timerStartTime) {
+      this.stopTimer(false)
+    }
+  }
+
+  componentWillUnmount() {
+    this.stopTimer(false)
+  }
+
+  startTimer = () => {
+    const { isRunning } = this.state
+    if (isRunning) return
+
+    const { task, updateTaskTimer } = this.props
+    const now = Date.now()
+
+    updateTaskTimer(task.id, task.remainingTime, now)
+
+    this.setState({ isRunning: true })
+    this.intervalId = setInterval(this.updateDisplayTime, 1000)
+  }
+
+  stopTimer = (shouldUpdateParent) => {
+    const { isRunning } = this.state
+    if (!isRunning) return
+
+    clearInterval(this.intervalId)
+    this.intervalId = null
+
+    const { task, updateTaskTimer } = this.props
+    const { displayTime } = this.state
+
+    if (shouldUpdateParent) {
+      updateTaskTimer(task.id, displayTime, null)
+    }
+
+    this.setState({ isRunning: false })
+  }
+
+  updateDisplayTime = () => {
+    const { task } = this.props
+    if (!task.timerStartTime) return
+
+    const now = Date.now()
+    const elapsedSeconds = Math.floor((now - task.timerStartTime) / 1000)
+    const newDisplayTime = Math.max(0, task.remainingTime - elapsedSeconds)
+
+    this.setState({ displayTime: newDisplayTime })
+
+    if (newDisplayTime <= 0) {
+      this.stopTimer(true)
+    }
+  }
+
+  handleTimerClick = () => {
+    const { isRunning } = this.state
+    const { task } = this.props
+
+    if (task.completed) return
+
+    if (isRunning) {
+      this.stopTimer(true)
+    } else {
+      this.startTimer()
     }
   }
 
@@ -33,65 +119,51 @@ export default class Task extends Component {
     event.preventDefault()
     const { newDescription } = this.state
     const { task, descriptionChange } = this.props
-    if (newDescription.trim() === '') {
-      return
-    }
+
+    if (newDescription.trim() === '') return
+
     descriptionChange(task.id, newDescription)
     this.idEditing()
   }
 
-  swapTimer = () => {
-    const { updateTimer, task, remainingTime } = this.props
-    this.setState((prevState) => {
-      const newActiveState = !prevState.isActive
-      updateTimer(task.id, remainingTime, newActiveState)
-      return { isActive: newActiveState }
-    })
-  }
-
   render() {
-    const { task, removeTask, toggleTaskCompletion, remainingTime, isActive } = this.props
-    const { isEdit, newDescription } = this.state
-    let liClassName = ''
-    if (task.completed) {
-      liClassName += 'completed'
-    } else if (isEdit) {
-      liClassName += 'editing'
-    }
-    let icon = 'icon'
-    if (isActive) {
-      icon += ' icon-pause'
-    } else {
-      icon += ' icon-play'
-    }
+    const { task, removeTask, toggleTaskCompletion } = this.props
+    const { isEdit, newDescription, displayTime, isRunning } = this.state
+    const { completed, id, created, description } = task
 
-    const createdDate = new Date(task.created)
+    let liClassName = ''
+    if (completed) liClassName += 'completed'
+    if (isEdit) liClassName += 'editing'
+
+    const icon = `icon ${isRunning ? 'icon-pause' : 'icon-play'}`
+    const createdDate = new Date(created)
+
     return (
       <li className={liClassName}>
         <div className="view">
-          <input className="toggle" type="checkbox" checked={task.completed} onChange={toggleTaskCompletion} />
-          <label htmlFor={`edit-${task.id}`}>
-            <span className="description">{task.description}</span>
+          <input className="toggle" type="checkbox" checked={completed} onChange={toggleTaskCompletion} />
+          <label htmlFor={`edit-${id}`}>
+            <span className="description">{description}</span>
             <span className="created created__timer">
-              <button type="button" className={icon} onClick={this.swapTimer} />
-              {Task.formatRemainingTime(remainingTime)}
+              <button type="button" className={icon} onClick={this.handleTimerClick} disabled={completed} />
+              {Task.formatRemainingTime(displayTime)}
             </span>
             <span className="created">{Task.formatDate(createdDate)}</span>
           </label>
           <button className="icon icon-edit" type="button" onClick={this.idEditing} />
           <button className="icon icon-destroy" type="button" onClick={removeTask} />
         </div>
-        {isEdit ? (
+        {isEdit && (
           <form onSubmit={this.descriptionSave}>
             <input
-              id={`edit-${task.id}`}
+              id={`edit-${id}`}
               className="edit"
               type="text"
               value={newDescription}
               onChange={this.updDescription}
             />
           </form>
-        ) : null}
+        )}
       </li>
     )
   }
@@ -103,8 +175,11 @@ Task.defaultProps = {
     description: '',
     completed: false,
     created: Date.now(),
+    remainingTime: 0,
+    timerStartTime: null,
   },
   removeTask: () => {},
   toggleTaskCompletion: () => {},
   descriptionChange: () => {},
+  updateTaskTimer: () => {},
 }
